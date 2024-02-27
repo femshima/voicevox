@@ -4,10 +4,6 @@
   "author": "Hiroshiba Kazuyuki",
   "private": true,
   "main": "./dist/main.js",
-  "engines": {
-    "node": ">=18.13.0 <19",
-    "npm": ">=8.19.3 <9"
-  },
   "volta": {
     "node": "18.13.0",
     "npm": "8.19.3"
