@@ -3,7 +3,7 @@
     "beforeBuildCommand": "npm run browser:build",
     "beforeDevCommand": "npm run browser:serve",
     "devPath": "http://localhost:5173",
-    "distDir": "../../public"
+    "distDir": "../dist"
   },
   "package": {
     "productName": "voicevox",
@@ -28,7 +28,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "jp.hiroshiba.voicevox",
       "longDescription": "",
       "macOS": {
         "entitlements": null,

@@ -1,17 +1,12 @@
 /// <reference types="vitest" />
 import path from "path";
-import { rm } from "fs/promises";
-import treeKill from "tree-kill";
 
-import electron from "vite-plugin-electron";
-import tsconfigPaths from "vite-tsconfig-paths";
 import vue from "@vitejs/plugin-vue";
 import checker from "vite-plugin-checker";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { BuildOptions, defineConfig, loadEnv, Plugin } from "vite";
 import { quasar } from "@quasar/vite-plugin";
 
-const isElectron = process.env.VITE_TARGET === "electron";
 const isBrowser = process.env.VITE_TARGET === "browser";
 
 export default defineConfig((options) => {
@@ -37,9 +32,28 @@ export default defineConfig((options) => {
     ? "inline"
     : false;
   return {
+    clearScreen: false,
+    // Tauri expects a fixed port, fail if that port is not available
+    server: {
+      strictPort: true,
+    },
+    // to access the Tauri environment variables set by the CLI with information about the current target
+    envPrefix: [
+      "VITE_",
+      "TAURI_PLATFORM",
+      "TAURI_ARCH",
+      "TAURI_FAMILY",
+      "TAURI_PLATFORM_VERSION",
+      "TAURI_PLATFORM_TYPE",
+      "TAURI_DEBUG",
+    ],
+
     root: path.resolve(__dirname, "src"),
     envDir: __dirname,
     build: {
+      target:
+        process.env.TAURI_PLATFORM == "windows" ? "chrome105" : "safari13",
+      minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
       outDir: path.resolve(__dirname, "dist"),
       chunkSizeWarningLimit: 10000,
       sourcemap,
@@ -85,51 +99,10 @@ export default defineConfig((options) => {
           },
           vueTsc: true,
         }),
-      isElectron && [
-        cleanDistPlugin(),
-        electron({
-          entry: [
-            "./src/backend/electron/main.ts",
-            "./src/backend/electron/preload.ts",
-          ],
-          // ref: https://github.com/electron-vite/vite-plugin-electron/pull/122
-          onstart: ({ startup }) => {
-            // @ts-expect-error vite-electron-pluginはprocess.electronAppにelectronのプロセスを格納している。
-            //   しかし、型定義はないので、ts-expect-errorで回避する。
-            const pid = process.electronApp?.pid;
-            if (pid) {
-              treeKill(pid);
-            }
-            if (options.mode !== "test") {
-              startup([".", "--no-sandbox"]);
-            }
-          },
-          vite: {
-            plugins: [tsconfigPaths({ root: __dirname })],
-            build: {
-              outDir: path.resolve(__dirname, "dist"),
-              sourcemap,
-            },
-          },
-        }),
-      ],
       isBrowser && injectBrowserPreloadPlugin(),
     ],
   };
 });
-const cleanDistPlugin = (): Plugin => {
-  return {
-    name: "clean-dist",
-    apply: "build",
-    enforce: "pre",
-    async buildStart() {
-      await rm(path.resolve(__dirname, "dist"), {
-        recursive: true,
-        force: true,
-      });
-    },
-  };
-};
 
 const injectBrowserPreloadPlugin = (): Plugin => {
   return {
